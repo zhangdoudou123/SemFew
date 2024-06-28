@@ -43,7 +43,7 @@ The following prerequisites are required to run the scripts:
 
 - [PyTorch and torchvision](https://pytorch.org)
 
-- Dataset: please download the dataset and modify the corresponding dataset path in the training file.
+- Dataset: Please download the dataset and modify the corresponding dataset path in the training file.
 
 - Pre-trained weights: Please refer to [[FEAT]](https://github.com/Sha-Lab/FEAT) and [[FewTURE]](https://github.com/mrkshllr/FewTURE).
 
