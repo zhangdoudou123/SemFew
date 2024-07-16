@@ -47,7 +47,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='TieredImageNet',
                         choices=['MiniImageNet', 'TieredImageNet', 'FC100', 'CIFAR-FS'])
     args = parser.parse_args()
-    args.model_path = '../checkpoint/backbone-{}.pth'.format(args.dataset)
+    args.model_path = '../checkpoint/ResNet-{}.pth'.format(args.dataset)
 
     args.work_dir = 'CNN_{}_{}_{}_{}'.format(args.dataset, args.mode, args.text_type, args.center)
 
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=0.1)
 
     if 'ImageNet' in args.dataset:
-        semantic = torch.load('../semantic/semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
+        semantic = torch.load('../semantic/imagenet_semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
     else:
         semantic = torch.load('../semantic/cifar100_semantic_{}_{}.pth'.format(args.mode, args.text_type))[
             'semantic_feature']

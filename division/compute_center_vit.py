@@ -39,7 +39,7 @@ def main():
 
     idx_to_class = trainset.class_to_idx
     idx_to_class = {k: v for v, k in idx_to_class.items()}
-    for x, labels, index in tqdm(train_loader):
+    for x, labels in tqdm(train_loader):
         labels = [idx_to_class[l.item()] for l in labels]
         with torch.no_grad():
             x = model(x.cuda())

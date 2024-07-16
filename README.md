@@ -45,7 +45,7 @@ The following prerequisites are required to run the scripts:
 
 - Dataset: Please download the dataset and modify the corresponding dataset path in the training file.
 
-- Pre-trained weights: Please refer to [[FEAT]](https://github.com/Sha-Lab/FEAT) and [[FewTURE]](https://github.com/mrkshllr/FewTURE).
+- Pre-trained weights: Please refer to [Google Cloud](https://drive.google.com/drive/folders/1J419EwA7gOKsXhmImKg_I-HvscyqLpBB?usp=sharing).
 
 - Class center: Please run [[division/compute_center.py]](https://github.com/zhangdoudou123/SemFew/blob/main/division/compute_center.py) or [[division/compute_center_vit.py]](https://github.com/zhangdoudou123/SemFew/blob/main/division/compute_center_vit.py) to compute the approximate class center. 
 
