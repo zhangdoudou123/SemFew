@@ -89,5 +89,5 @@ if __name__ == '__main__':
                         choices=['mean', 'cluster'])
     args = parser.parse_args()
     print(vars(args))
-    args.model_path = '../checkpoint/backbone-{}.pth'.format(args.dataset)
+    args.model_path = '../checkpoint/ResNet-{}.pth'.format(args.dataset)
     main()

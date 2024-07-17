@@ -37,9 +37,11 @@ if __name__ == '__main__':
                         choices=['gpt', 'name', 'definition'])
     parser.add_argument('--dataset', type=str, default='TieredImageNet',
                         choices=['MiniImageNet', 'TieredImageNet', 'FC100', 'CIFAR-FS'])
+    parser.add_argument('--backbone', type=str, default='resnet',
+                        choices=['resnet', 'swin'])
     args = parser.parse_args()
     args.model_path = './checkpoint/ResNet-{}.pth'.format(args.dataset)
-    args.work_dir = 'CNN_{}_{}_{}_{}'.format(args.dataset, args.mode, args.text_type, args.center)
+    args.work_dir = '{}_{}_{}_{}_{}_{}'.format(args.backbone, args.dataset, args.mode, args.text_type, args.center, args.shot)
 
     log = loggers('test_{}'.format(args.dataset))
     log.info(vars(args))
@@ -132,6 +134,7 @@ if __name__ == '__main__':
 
         P_acc, P_95 = count_95acc(np.array(P_acc))
         G_acc, G_95 = count_95acc(np.array(G_acc))
+        A_acc = count_95acc(np.array(A_acc))
         
         log.info('max |k: %16s |mix acc: %.2f+%.2f%% |gap: %.2f' % (
             best_k, A_acc[0] * 100, A_acc[1] * 100, A_acc[0] * 100 - P_acc * 100))

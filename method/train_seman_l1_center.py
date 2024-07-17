@@ -47,10 +47,16 @@ if __name__ == '__main__':
                         choices=['gpt', 'name', 'definition'])
     parser.add_argument('--dataset', type=str, default='TieredImageNet',
                         choices=['MiniImageNet', 'TieredImageNet', 'FC100', 'CIFAR-FS'])
+    parser.add_argument('--backbone', type=str, default='resnet',
+                        choices=['resnet', 'swin'])
     args = parser.parse_args()
-    args.model_path = './checkpoint/ResNet-{}.pth'.format(args.dataset)
-
-    args.work_dir = 'CNN_{}_{}_{}_{}'.format(args.dataset, args.mode, args.text_type, args.center)
+    
+    if args.backbone == 'resnet':
+        args.model_path = './checkpoint/ResNet-{}.pth'.format(args.dataset)
+    elif args.backbone == 'swin':
+        args.model_path = './checkpoint/Swin-Tiny-{}.pth'.format(args.dataset)
+        
+    args.work_dir = '{}_{}_{}_{}_{}_{}'.format(args.backbone, args.dataset, args.mode, args.text_type, args.center, args.shot)
 
     if args.dataset == 'TieredImageNet':
         args.num_workers = 0
@@ -96,40 +102,56 @@ if __name__ == '__main__':
     val_sampler = CategoriesSampler(val_dataset.targets, args.test_batch, args.test_way, args.shot + args.query)
     val_loader = DataLoader(dataset=val_dataset, batch_sampler=val_sampler,
                             num_workers=args.num_workers, pin_memory=True)
-
-    proto_center = torch.load('center_{}.pth'.format(args.dataset))[args.center]
-
-    if 'ImageNet' in args.dataset:
-        model = Res12(avg_pool=True).to(device)
+    
+    if args.backbone == 'resnet':
+        proto_center = torch.load('center_{}.pth'.format(args.dataset))[args.center]
+    elif args.backbone == 'swin':
+        proto_center = torch.load('center_{}_vit.pth'.format(args.dataset))[args.center]
+     
+    if args.backbone == 'resnet':
+        if 'ImageNet' in args.dataset:
+            model = Res12(avg_pool=True).to(device)
+            model_dict = model.state_dict()
+            checkpoint = torch.load(args.model_path)['params']
+            checkpoint = {k[8:]: v for k, v in checkpoint.items()}
+            checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
+        elif args.dataset == 'CIFAR-FS':
+            model = Res12(avg_pool=True, drop_block=False).to(device)
+            model_dict = model.state_dict()
+            checkpoint = torch.load(args.model_path)['params']
+            checkpoint = {k[8:]: v for k, v in checkpoint.items()}
+            checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
+        else:
+            model = Res12(avg_pool=True, drop_block=False).to(device)
+            model_dict = model.state_dict()
+            checkpoint = torch.load(args.model_path)['params']
+            checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
+    
+        print(len(checkpoint))
+        model.load_state_dict(checkpoint)
+        model.eval()
+    elif args.backbone == 'swin':
+        model = swin_tiny().to(device)
         model_dict = model.state_dict()
         checkpoint = torch.load(args.model_path)['params']
-        checkpoint = {k[8:]: v for k, v in checkpoint.items()}
         checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
-    elif args.dataset == 'CIFAR-FS':
-        model = Res12(avg_pool=True, drop_block=False).to(device)
-        model_dict = model.state_dict()
-        checkpoint = torch.load(args.model_path)['params']
-        checkpoint = {k[8:]: v for k, v in checkpoint.items()}
-        checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
-    else:
-        model = Res12(avg_pool=True, drop_block=False).to(device)
-        model_dict = model.state_dict()
-        checkpoint = torch.load(args.model_path)['params']
-        checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
-
-    print(len(checkpoint))
-    model.load_state_dict(checkpoint)
-    model.eval()
-
-    H = SemAlign(args.feat_size, args.semantic_size, h_size=4096, drop=args.drop).to(device)
+        print(len(checkpoint))
+        model.load_state_dict(checkpoint)
+        model.eval()
+    
+    if args.backbone == 'resnet':
+        feat_size = 640
+    elif args.backbone == 'swin':
+        feat_size = 768
+        
+    H = SemAlign(feat_size, args.semantic_size, h_size=4096, drop=args.drop).to(device)
     optimizer = torch.optim.Adam(H.parameters(), lr=args.lr)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=0.1)
 
     if 'ImageNet' in args.dataset:
-        semantic = torch.load('./semantic/semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
+        semantic = torch.load('./semantic/imagenet_semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
     else:
-        semantic = torch.load('./semantic/cifar100_semantic_{}_{}.pth'.format(args.mode, args.text_type))[
-            'semantic_feature']
+        semantic = torch.load('./semantic/cifar100_semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
     semantic = {k: v.float() for k, v in semantic.items()}
 
     gap_acc = -1
@@ -168,19 +190,20 @@ if __name__ == '__main__':
             with torch.no_grad():
                 for data, labels in tqdm(val_loader):
                     data = data.cuda()
-                    data = model(data)
+                    data = model(data).view(data.size(0), -1)
                     n_support = args.shot * args.test_way
                     support, query = data[:n_support], data[n_support:]
 
                     proto = support.reshape(args.shot, args.test_way, -1).mean(dim=0)
-                    s = torch.stack([semantic[val_idx_to_class[l.item()]] for l in labels[:args.test_way]]).cuda()
+                    s = torch.stack([semantic[val_idx_to_class[l.item()]] for l in labels[:n_support]]).cuda()
                     gen_proto = H(s, support)
-
+                    gen_proto = gen_proto.reshape(args.shot, args.test_way, -1).mean(dim=0)
+                    
                     _, predict0 = Cosine_classifier(proto, query)
                     _, predict1 = Cosine_classifier(gen_proto, query)
                     O_acc.append(((predict0 == label).sum() / len(label)).item())
                     G_acc.append(((predict1 == label).sum() / len(label)).item())
-
+                    
                     for f in ks:
                         if str(f) in P_acc:
                             P_acc[str(f)].append(count_kacc(proto, gen_proto, query, f, args))
@@ -225,9 +248,4 @@ if __name__ == '__main__':
             log.info('ACC |proto acc: %.2f+%.2f%% |gen acc: %.2f+%.2f%% |Max: %.2f' % (
                 O_acc * 100, O_95 * 100, G_acc * 100, G_95 * 100, 100 * max_acc1))
 
-        # torch.save({
-        #     'G': generator,
-        #     'epoch': epoch,
-        #     'k': max_acc['k']
-        # }, os.path.join(args.work_dir, 'epoch_{}.pth'.format(epoch)))
     writer.close()

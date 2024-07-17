@@ -50,16 +50,11 @@ The following prerequisites are required to run the scripts:
 - Class center: Please run [[division/compute_center.py]](https://github.com/zhangdoudou123/SemFew/blob/main/division/compute_center.py) or [[division/compute_center_vit.py]](https://github.com/zhangdoudou123/SemFew/blob/main/division/compute_center_vit.py) to compute the approximate class center. 
 
 # Training scripts
+    python method/train_seman_l1_center.py --max-epoch 50 --mode clip --semantic-size 512 --text_type gpt --shot 1  --step-size 40 --test-batch 600 --batch-size 128 --num-workers 8 --dataset MiniImageNet --lr 1e-4 --backbone resnet
 
-For example, to train the 1-shot/5-shot 5-way SemFew model with Resnet vision encoder and CLIP text encoder on MiniImageNet:
-
-    $ python method/train_seman_l1_center.py --max-epoch 50 --mode clip --semantic-size 512 --text_type gpt --shot 1  --step-size 40 --test-batch 600 --batch-size 128 --beta 1 --num-workers 8 --dataset MiniImageNet --lr 1e-4
-    $ python method/train_seman_l1_center.py --max-epoch 50 --mode clip --semantic-size 512 --text_type gpt --shot 5  --step-size 40 --test-batch 600 --batch-size 128 --beta 1 --num-workers 8 --dataset MiniImageNet --lr 1e-4
-
-to train the 1-shot/5-shot 5-way SemFew model with Transformer vision encoder and CLIP text encoder on MiniImageNet:
-
-    $ python method/train_seman_l1_center_vit.py --max-epoch 50 --mode clip --semantic-size 512 --text_type gpt --shot 1  --step-size 40 --test-batch 600 --batch-size 128 --beta 1 --num-workers 8 --dataset MiniImageNet --lr 1e-4
-    $ python method/train_seman_l1_center_vit.py --max-epoch 50 --mode clip --semantic-size 512 --text_type gpt --shot 5  --step-size 40 --test-batch 600 --batch-size 128 --beta 1 --num-workers 8 --dataset MiniImageNet --lr 1e-4
+# Evaluation scripts
+    python method/meta_test.py --dataset MiniImageNet --shot 1 # ResNet Backbone
+    python method/meta_test_vit.py --dataset MiniImageNet --shot 1 # Swin Backbone
 
 # Acknowledgment
 

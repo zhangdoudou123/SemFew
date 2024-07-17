@@ -34,9 +34,11 @@ if __name__ == '__main__':
                         choices=['gpt', 'name', 'definition'])
     parser.add_argument('--dataset', type=str, default='TieredImageNet',
                         choices=['MiniImageNet', 'TieredImageNet', 'FC100', 'CIFAR-FS'])
+    parser.add_argument('--backbone', type=str, default='swin',
+                        choices=['resnet', 'swin'])
     args = parser.parse_args()
     args.model_path = '../checkpoint/Swin-Tiny-{}.pth'.format(args.dataset)
-    args.work_dir = '../Vit_{}_{}_{}_{}'.format(args.dataset, args.mode, args.text_type, args.center)
+    args.work_dir = '../{}_{}_{}_{}_{}_{}'.format(args.backbone, args.dataset, args.mode, args.text_type, args.center, args.shot)
 
     log = loggers('test_{}_vit'.format(args.dataset))
     log.info(vars(args))
