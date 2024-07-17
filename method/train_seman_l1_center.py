@@ -1,7 +1,7 @@
 import os
 import sys
 
-from method.SemAlign import SemAlign
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
@@ -16,9 +16,10 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
+from method.SemAlign import SemAlign
 
 from data.samplers import CategoriesSampler
-from data.tiered_imagenet import tieredImageNet
+# from data.tiered_imagenet import tieredImageNet
 from logger import loggers
 from model.res12 import Res12
 from utils import Cosine_classifier, count_95acc, transform_val_cifar, transform_train_cifar, \
@@ -47,7 +48,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='TieredImageNet',
                         choices=['MiniImageNet', 'TieredImageNet', 'FC100', 'CIFAR-FS'])
     args = parser.parse_args()
-    args.model_path = '../checkpoint/ResNet-{}.pth'.format(args.dataset)
+    args.model_path = './checkpoint/ResNet-{}.pth'.format(args.dataset)
 
     args.work_dir = 'CNN_{}_{}_{}_{}'.format(args.dataset, args.mode, args.text_type, args.center)
 
@@ -65,18 +66,18 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if args.dataset == 'MiniImageNet':
-        args.val = 'F:\datasets\miniImageNet\\val'
-        args.train = 'F:\datasets\miniImageNet\\base'
+        args.val = '/path/to/your/miniimagenet/val'
+        args.train = '/path/to/your/miniimagenet/train'
         train_dataset = ImageFolder(args.train, transform=transform_train)
         val_dataset = ImageFolder(args.val, transform=transform_val)
     elif args.dataset == 'FC100':
-        args.val = 'F:\datasets\FC100\\val'
-        args.train = 'F:\datasets\FC100\\train'
+        args.val = '/path/to/your/fc100/val'
+        args.train = '/path/to/your/fc100/train'
         train_dataset = ImageFolder(args.train, transform=transform_train_cifar)
         val_dataset = ImageFolder(args.val, transform=transform_val_cifar)
     elif args.dataset == 'CIFAR-FS':
-        args.val = 'F:\datasets\CIFAR-FS\cifar100\\val'
-        args.train = 'F:\datasets\CIFAR-FS\cifar100\\base'
+        args.val = '/path/to/your/cifar-fs/val'
+        args.train = '/path/to/your/cifar-fs/train'
         train_dataset = ImageFolder(args.train, transform=transform_train_cifar)
         val_dataset = ImageFolder(args.val, transform=transform_val_cifar)
     elif args.dataset == 'TieredImageNet':
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     val_loader = DataLoader(dataset=val_dataset, batch_sampler=val_sampler,
                             num_workers=args.num_workers, pin_memory=True)
 
-    proto_center = torch.load('../division/center_{}.pth'.format(args.dataset))[args.center]
+    proto_center = torch.load('center_{}.pth'.format(args.dataset))[args.center]
 
     if 'ImageNet' in args.dataset:
         model = Res12(avg_pool=True).to(device)
@@ -125,9 +126,9 @@ if __name__ == '__main__':
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=0.1)
 
     if 'ImageNet' in args.dataset:
-        semantic = torch.load('../semantic/imagenet_semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
+        semantic = torch.load('./semantic/semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
     else:
-        semantic = torch.load('../semantic/cifar100_semantic_{}_{}.pth'.format(args.mode, args.text_type))[
+        semantic = torch.load('./semantic/cifar100_semantic_{}_{}.pth'.format(args.mode, args.text_type))[
             'semantic_feature']
     semantic = {k: v.float() for k, v in semantic.items()}
 

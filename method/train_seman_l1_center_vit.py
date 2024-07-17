@@ -44,7 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, default='MiniImageNet',
                         choices=['MiniImageNet', 'TieredImageNet', 'FC100', 'CIFAR-FS'])
     args = parser.parse_args()
-    args.model_path = '../checkpoint/Swin-Tiny-{}.pth'.format(args.dataset)
+    args.model_path = './checkpoint/Swin-Tiny-{}.pth'.format(args.dataset)
 
     args.work_dir = 'Vit_{}_{}_{}_{}'.format(args.dataset, args.mode, args.text_type, args.center)
 
@@ -59,25 +59,23 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if args.dataset == 'MiniImageNet':
-        args.val = 'F:\datasets\miniImageNet\\val'
-        args.train = 'F:\datasets\miniImageNet\\base'
-        train_dataset = ImageFolder(args.train, transform=transform_train_224)
-        val_dataset = ImageFolder(args.val, transform=transform_val_224)
+        args.val = '/path/to/your/miniimagenet/val'
+        args.train = '/path/to/your/miniimagenet/train'
+        train_dataset = ImageFolder(args.train, transform=transform_train)
+        val_dataset = ImageFolder(args.val, transform=transform_val)
     elif args.dataset == 'FC100':
-        args.val = 'F:\datasets\FC100\\val'
-        args.train = 'F:\datasets\FC100\\train'
-        train_dataset = ImageFolder(args.train, transform=transform_train_224_cifar)
-        val_dataset = ImageFolder(args.val, transform=transform_val_224_cifar)
+        args.val = '/path/to/your/fc100/val'
+        args.train = '/path/to/your/fc100/train'
+        train_dataset = ImageFolder(args.train, transform=transform_train_cifar)
+        val_dataset = ImageFolder(args.val, transform=transform_val_cifar)
     elif args.dataset == 'CIFAR-FS':
-        args.val = 'F:\datasets\CIFAR-FS\cifar100\\val'
-        args.train = 'F:\datasets\CIFAR-FS\cifar100\\base'
-        train_dataset = ImageFolder(args.train, transform=transform_train_224_cifar)
-        val_dataset = ImageFolder(args.val, transform=transform_val_224_cifar)
+        args.val = '/path/to/your/cifar-fs/val'
+        args.train = '/path/to/your/cifar-fs/train'
+        train_dataset = ImageFolder(args.train, transform=transform_train_cifar)
+        val_dataset = ImageFolder(args.val, transform=transform_val_cifar)
     elif args.dataset == 'TieredImageNet':
-        args.val = 'E:\deeplearning\datasets\\tiered_imagenet\\val'
-        args.train = 'E:\deeplearning\datasets\\tiered_imagenet\\train'
-        train_dataset = ImageFolder(args.train, transform=transform_train_224)
-        val_dataset = ImageFolder(args.val, transform=transform_val_224)
+        train_dataset = tieredImageNet(setname='train', augment=True)
+        val_dataset = tieredImageNet(setname='val')
     else:
         raise ValueError('Non-supported Dataset.')
 
@@ -92,7 +90,7 @@ if __name__ == '__main__':
     val_loader = DataLoader(dataset=val_dataset, batch_sampler=val_sampler,
                             num_workers=args.num_workers, pin_memory=True)
 
-    proto_center = torch.load('../division/center_{}_vit.pth'.format(args.dataset))[args.center]
+    proto_center = torch.load('center_{}_vit.pth'.format(args.dataset))[args.center]
 
     model = swin_tiny().to(device)
     model_dict = model.state_dict()
@@ -107,9 +105,9 @@ if __name__ == '__main__':
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=0.1)
 
     if 'ImageNet' in args.dataset:
-        semantic = torch.load('../semantic/imagenet_semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
+        semantic = torch.load('./semantic/imagenet_semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
     else:
-        semantic = torch.load('../semantic/cifar100_semantic_{}_{}.pth'.format(args.mode, args.text_type))[
+        semantic = torch.load('./semantic/cifar100_semantic_{}_{}.pth'.format(args.mode, args.text_type))[
             'semantic_feature']
     semantic = {k: v.float() for k, v in semantic.items()}
 

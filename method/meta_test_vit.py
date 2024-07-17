@@ -36,24 +36,23 @@ if __name__ == '__main__':
                         choices=['MiniImageNet', 'TieredImageNet', 'FC100', 'CIFAR-FS'])
     args = parser.parse_args()
     args.model_path = '../checkpoint/Swin-Tiny-{}.pth'.format(args.dataset)
-    args.work_dir = 'Vit_{}_{}_{}_{}'.format(args.dataset, args.mode, args.text_type, args.center)
+    args.work_dir = '../Vit_{}_{}_{}_{}'.format(args.dataset, args.mode, args.text_type, args.center)
 
     log = loggers('test_{}_vit'.format(args.dataset))
     log.info(vars(args))
     set_seed(args.seed)
 
     if args.dataset == 'MiniImageNet':
-        args.test = 'F:\datasets\miniImageNet\\novel'
-        test_dataset = ImageFolder(args.test, transform=transform_val_224)
+        args.test = '/path/to/your/miniimagent/test'
+        test_dataset = ImageFolder(args.test, transform=transform_val)
     elif args.dataset == 'FC100':
-        args.test = 'F:\datasets\FC100\\test'
-        test_dataset = ImageFolder(args.test, transform=transform_val_224_cifar)
+        args.test = '/path/to/your/fc100/test'
+        test_dataset = ImageFolder(args.test, transform=transform_val_cifar)
     elif args.dataset == 'CIFAR-FS':
-        args.test = 'F:\datasets\CIFAR-FS\cifar100\\novel'
-        test_dataset = ImageFolder(args.test, transform=transform_val_224_cifar)
+        args.test = '/path/to/your/cifar-fs/test'
+        test_dataset = ImageFolder(args.test, transform=transform_val_cifar)
     elif args.dataset == 'TieredImageNet':
-        args.test = 'E:\deeplearning\datasets\\tiered_imagenet\\test'
-        test_dataset = ImageFolder(args.test, transform=transform_val_224)
+        test_dataset = tieredImageNet(setname='test')
     else:
         raise ValueError('Non-supported Dataset.')
 
@@ -77,19 +76,19 @@ if __name__ == '__main__':
     fusion = H['G']
     best_epoch = H['epoch']
     best_acc = H['acc']
+    best_k = H['k']
     log.info('best epoch: %d %2f' % (best_epoch, best_acc * 100))
-
+    log.info('best k: %2f' % (float(best_k)))
+    
     if 'ImageNet' in args.dataset:
-        semantic = torch.load('../semantic/semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
+        semantic = torch.load('../semantic/imagenet_semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
     else:
-        semantic = torch.load('../semantic/cifar100_semantic_{}_{}.pth'.format(args.mode, args.text_type))[
-            'semantic_feature']
+        semantic = torch.load('../semantic/cifar100_semantic_{}_{}.pth'.format(args.mode, args.text_type))['semantic_feature']
     semantic = {k: v.float() for k, v in semantic.items()}
 
-    ks = np.arange(0, 101) * 0.01
     label = torch.arange(args.test_way).repeat(args.query).type(torch.cuda.LongTensor)
     with torch.no_grad():
-        A_acc = {}
+        A_acc = []
         P_acc = []
         G_acc = []
         for data, labels in tqdm(val_loader):
@@ -107,32 +106,14 @@ if __name__ == '__main__':
             dist1, predict1 = Cosine_classifier(gen_proto, query)
             P_acc.append(((predict0 == label).sum() / len(label)).item())
             G_acc.append(((predict1 == label).sum() / len(label)).item())
-
-            for f in ks:
-                if str(f) in A_acc:
-                    A_acc[str(f)].append(count_kacc(proto, gen_proto, query, f, args))
-                else:
-                    A_acc[str(f)] = []
-                    A_acc[str(f)].append(count_kacc(proto, gen_proto, query, f, args))
+            
+            A_acc.append(count_kacc(proto, gen_proto, query, torch.tensor(float(best_k)), args))
 
         P_acc, P_95 = count_95acc(np.array(P_acc))
         G_acc, G_95 = count_95acc(np.array(G_acc))
-        max_acc = {
-            'k': 0,
-            'acc': 0,
-            'acc95': 0,
-        }
-        for k, v in A_acc.items():
-            A_acc[k] = count_95acc(np.array(v))
-            if A_acc[k][0] > max_acc['acc']:
-                max_acc['acc'] = A_acc[k][0]
-                max_acc['acc95'] = A_acc[k][1]
-                max_acc['k'] = k
+        A_acc = count_95acc(np.array(A_acc))
 
-            # log.info('task: %d |k: %s |CP acc: %.2f+%.2f%% ' % (
-            #     args.test_batch, k, A_acc[k][0] * 100, A_acc[k][1] * 100))
-        gap = max_acc['acc'] * 100 - A_acc[str(ks[-1])][0] * 100
         log.info('max |k: %16s |mix acc: %.2f+%.2f%% |gap: %.2f' % (
-            max_acc['k'], max_acc['acc'] * 100, max_acc['acc95'] * 100, gap))
+            best_k, A_acc[0] * 100, A_acc[1] * 100, A_acc[0] * 100 - P_acc * 100))
         log.info('ACC:|proto acc: %.2f+%.2f%% |gen acc: %.2f+%.2f%%' % (
             P_acc * 100, P_95 * 100, G_acc * 100, G_95 * 100))
