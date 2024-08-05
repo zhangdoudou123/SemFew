@@ -7,32 +7,23 @@ from tqdm import tqdm
 
 from data.tiered_imagenet import tieredImageNet
 from model.res12 import Res12
+from model.swin_transformer import swin_tiny
 import torch.utils.data
 from utils import transform_val, transform_val_cifar, cluster
 from utils import transform_val_224_cifar, transform_val_224
 
 def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if args.backbone == 'resnet':
-        if 'ImageNet' in args.dataset:
-            model = Res12(avg_pool=True).cuda()
-            model_dict = model.state_dict()
-            checkpoint = torch.load(args.model_path)['params']
+        model = Res12(avg_pool=True, drop_block='ImageNet' in args.dataset).to(device)
+        model_dict = model.state_dict()
+        checkpoint = torch.load(args.model_path)['params']
+        if args.dataset == 'CIFAR-FS':
             checkpoint = {k[8:]: v for k, v in checkpoint.items()}
-            checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
-        elif args.dataset == 'CIFAR-FS':
-            model = Res12(avg_pool=True, drop_block=False).cuda()
-            model_dict = model.state_dict()
-            checkpoint = torch.load(args.model_path)['params']
-            checkpoint = {k[8:]: v for k, v in checkpoint.items()}
-            checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
-        else:
-            model = Res12(avg_pool=True, drop_block=False).cuda()
-            model_dict = model.state_dict()
-            checkpoint = torch.load(args.model_path)['params']
-            checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
+        checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
 
     elif args.backbone == 'swin':
-        model = swin_tiny().cuda()
+        model = swin_tiny().to(device)
         model_dict = model.state_dict()
         checkpoint = torch.load(args.model_path)['params']
         checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
@@ -44,6 +35,7 @@ def main():
     data = {}
     batch_size = 128
     shuffle = True
+    
     # train
     if args.dataset == 'MiniImageNet':
         trainset = ImageFolder('/path/to/your/miniimagenet/train', transform=transform_val if args.backbone == 'resnet' else transform_val_224)
@@ -66,7 +58,7 @@ def main():
     for x, labels in tqdm(train_loader):
         labels = [idx_to_class[l.item()] for l in labels]
         with torch.no_grad():
-            x = model(x.cuda())
+            x = model(x.to(device))
         for i, l in enumerate(labels):
             if l in data:
                 data[l].append(x[i].detach().cpu().numpy())
@@ -89,7 +81,7 @@ def main():
         'mean': center_mean,
         'cluster': center_cluster,
         'center': center_mean
-    }, 'center_{}.pth'.format(args.dataset))
+    }, 'center_{}_{}.pth'.format(args.dataset, args.backbone))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

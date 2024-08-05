@@ -45,16 +45,46 @@ The following prerequisites are required to run the scripts:
 
 - Dataset: Please download the dataset and modify the corresponding dataset path in the training file.
 
-- Pre-trained weights: Please refer to [Google Cloud](https://drive.google.com/drive/folders/1J419EwA7gOKsXhmImKg_I-HvscyqLpBB?usp=sharing).
+- Pre-trained weights: Please download checkpoints from [Google Cloud](https://drive.google.com/drive/folders/1J419EwA7gOKsXhmImKg_I-HvscyqLpBB?usp=sharing), then put them into ./checkpoints directory.
 
-- Class center: Please run [[division/compute_center.py]](https://github.com/zhangdoudou123/SemFew/blob/main/division/compute_center.py) or [[division/compute_center_vit.py]](https://github.com/zhangdoudou123/SemFew/blob/main/division/compute_center_vit.py) to compute the approximate class center. 
+- Install packages
+```python
+pip instal -r requirements.txt
+```
+# Start
 
-# Training scripts
-    python method/train_seman_l1_center.py --max-epoch 50 --mode clip --semantic-size 512 --text_type gpt --shot 1  --step-size 40 --test-batch 600 --batch-size 128 --num-workers 8 --dataset MiniImageNet --lr 1e-4 --backbone resnet
+Please excute following commands in order.
+## Computing Centers
+```python
+python compute_center.py
+    --dataset MiniImageNet/TiredImageNet/CIFAR-FS/FC100
+    --backbone resnet/swin
+```
 
-# Evaluation scripts
-    python method/meta_test.py --dataset MiniImageNet --shot 1 # ResNet Backbone
-    python method/meta_test_vit.py --dataset MiniImageNet --shot 1 # Swin Backbone
+## Training
+```python
+python method/train.py 
+    --max-epoch 50 
+    --mode clip 
+    --semantic-size 512 
+    --text_type gpt 
+    --shot 1  
+    --step-size 40 
+    --test-batch 600 
+    --batch-size 128 
+    --num-workers 8 
+    --dataset MiniImageNet/TiredImageNet/CIFAR-FS/FC100
+    --lr 1e-4 
+    --backbone resnet/swin
+```
+
+## Evaluation
+```python
+python method/test.py 
+    --dataset MiniImageNet/TiredImageNet/CIFAR-FS/FC100 
+    --shot 1 
+    --backbone resnet/swin
+```
 
 # Acknowledgment
 
