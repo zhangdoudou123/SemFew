@@ -18,8 +18,7 @@ def main():
         model = Res12(avg_pool=True, drop_block='ImageNet' in args.dataset).to(device)
         model_dict = model.state_dict()
         checkpoint = torch.load(args.model_path)['params']
-        if args.dataset == 'CIFAR-FS':
-            checkpoint = {k[8:]: v for k, v in checkpoint.items()}
+        checkpoint = {k[8:]: v for k, v in checkpoint.items()}
         checkpoint = {k: v for k, v in checkpoint.items() if k in model_dict}
 
     elif args.backbone == 'swin':
