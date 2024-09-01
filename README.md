@@ -43,7 +43,7 @@ The following prerequisites are required to run the scripts:
 
 - [PyTorch and torchvision](https://pytorch.org)
 
-- Dataset: Please download the dataset and modify the corresponding dataset path in the training file.
+- Dataset: Please download the dataset from [Google Cloud](https://drive.google.com/drive/folders/1elbJ6aHxtKGutzOxlXA7QwV45EZEqNxq?usp=drive_link) and modify the corresponding dataset path in the training file.
 
 - Pre-trained weights: Please download checkpoints from [Google Cloud](https://drive.google.com/drive/folders/1J419EwA7gOKsXhmImKg_I-HvscyqLpBB?usp=sharing), then put them into ./checkpoints directory.
 
